@@ -15,7 +15,7 @@ if "page" not in st.session_state: st.session_state.page = 1
 if "customer" not in st.session_state: st.session_state.customer = {}
 
 
-st.title("SmartBanking Logo.png SmartBanking — Loan Approval & EMI Calculator")
+st.title("SmartBanking Logo.png", "SmartBanking — Loan Approval & EMI Calculator")
 
 st.caption("Developed by **DHIAN PATEL** • Digital Loan Origination & Prepayment Simulator")
 st.markdown("Complete Page 1 for instant loan approval, then move to Page 2 to calculate EMIs and extra monthly payments.")
