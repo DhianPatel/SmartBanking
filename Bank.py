@@ -5,10 +5,13 @@ import streamlit as st
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="Apex Bank | Smart Loan Portal",
+    page_title="SmartBanking",
     page_icon="🏦",
     layout="wide",
 )
+
+
+st.write="By DHIAN PATEL",
 
 # --- DATABASE SETUP (Persistent SQLite Storage) ---
 DB_FILE = "bank_customers.db"
