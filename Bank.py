@@ -93,7 +93,7 @@ if st.session_state.page == 1:
         if approved_limit > 0 and st.button("Go to Page 2: Loan Calculator ➡️"): st.session_state.page = 2; st.rerun()
 
     st.divider()
-    st.caption("🏦 Apex Bank Digital Portal | Designed & Developed by **DHIAN PATEL**")
+    st.caption("🏦 SmartBanking Digital Portal | Designed & Developed by **DHIAN PATEL**")
     st.stop()
 
 st.header("Page 2: Smart EMI & Extra Monthly Payment Calculator")
