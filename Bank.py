@@ -14,7 +14,7 @@ conn.commit()
 if "page" not in st.session_state: st.session_state.page = 1
 if "customer" not in st.session_state: st.session_state.customer = {}
 
-st.logo("SmartBanking Logo.png", width="50px", height="50px")
+st.logo("SmartBanking Logo.png")
 st.title("🏦 SmartBanking — Loan Approval & EMI Calculator")
 
 st.caption("Developed by **DHIAN PATEL** • Digital Loan Origination & Prepayment Simulator")
