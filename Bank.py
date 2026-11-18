@@ -14,7 +14,7 @@ conn.commit()
 if "page" not in st.session_state: st.session_state.page = 1
 if "customer" not in st.session_state: st.session_state.customer = {}
 
-st.title("🏦 Apex Bank — Loan Approval & EMI Calculator")
+st.title("🏦 SmartBanking — Loan Approval & EMI Calculator")
 st.caption("Developed by **DHIAN PATEL** • Digital Loan Origination & Prepayment Simulator")
 st.markdown("Complete Page 1 for instant loan approval, then move to Page 2 to calculate EMIs and extra monthly payments.")
 
@@ -158,4 +158,4 @@ if len(df_all) > 0: records_box.dataframe(df_all, use_container_width=True)
 
 if len(df_all) > 0: records_box.download_button("📥 Download All Customer Records (CSV)", data=df_all.to_csv(index=False).encode("utf-8"), file_name="bank_applicants.csv", mime="text/csv")
 st.divider()
-st.caption("🏦 Apex Bank Digital Portal | Designed & Developed by DHIAN PATEL")
+st.caption("🏦 SmartBanking Digital Portal | Designed & Developed by DHIAN PATEL")
