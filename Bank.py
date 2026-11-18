@@ -16,11 +16,12 @@ if "customer" not in st.session_state: st.session_state.customer = {}
 
 st.title("🏦 Apex Bank — Loan Approval & EMI Calculator")
 st.caption("Developed by **DHIAN PATEL** • Digital Loan Origination & Prepayment Simulator")
-st.write("Complete Page 1 for instant loan approval, then move to Page 2 to calculate EMIs and extra monthly payments.")
+st.markdown("Complete Page 1 for instant loan approval, then move to Page 2 to calculate EMIs and extra monthly payments.")
 
 nav1, nav2 = st.columns(2)
 if nav1.button("Page 1: Loan Approval & Verification", use_container_width=True): st.session_state.page = 1; st.rerun()
 if nav2.button("Page 2: EMI & Extra Payment Calculator", use_container_width=True): st.session_state.page = 2; st.rerun()
+
 
 st.divider()
 
