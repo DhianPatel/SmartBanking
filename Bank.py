@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="SmartBanking Loan Portal | Developed by DHIAN PATEL", page_icon="🏦", layout="wide")
+st.set_page_config(page_title="SmartBanking Loan Portal | Developed by DHIAN PATEL", page_icon="SmartBanking Logo.png", layout="wide")
 
 conn = sqlite3.connect("bank_customers.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -14,7 +14,7 @@ conn.commit()
 if "page" not in st.session_state: st.session_state.page = 1
 if "customer" not in st.session_state: st.session_state.customer = {}
 
-st.logo("SmartBanking Logo.png")
+
 st.title("🏦 SmartBanking — Loan Approval & EMI Calculator")
 
 st.caption("Developed by **DHIAN PATEL** • Digital Loan Origination & Prepayment Simulator")
