@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Apex Bank Loan Portal | Developed by DHIAN PATEL", page_icon="🏦", layout="wide")
+st.set_page_config(page_title="SmartBanking Loan Portal | Developed by DHIAN PATEL", page_icon="🏦", layout="wide")
 
 conn = sqlite3.connect("bank_customers.db", check_same_thread=False)
 cursor = conn.cursor()
