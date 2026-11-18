@@ -5,13 +5,10 @@ import streamlit as st
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="SmartBanking",
+    page_title="Apex Bank | Smart Loan Portal",
     page_icon="🏦",
     layout="wide",
 )
-#DhianPatel
-
-st.write="By DHIAN PATEL",
 
 # --- DATABASE SETUP (Persistent SQLite Storage) ---
 DB_FILE = "bank_customers.db"
@@ -115,12 +112,11 @@ if "active_customer" not in st.session_state:
 # --- HEADER & STEP NAVIGATION BAR ---
 st.title("🏦 Apex Bank — Digital Loan Origination & EMI Portal")
 st.caption(
-    "Automated Pre-Approval • Customer Identity Vault • Prepayment Savings"
-    " Simulator"
+    "Automated Pre-Approval • Customer Identity Vault • Prepayment Savings Simulator"
 )
 
 # Visual Progress Indicator
-col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 2])
+col_nav1, col_nav2 = st.columns(2)
 with col_nav1:
   if st.button(
       "1️⃣ Step 1: Verification & Approval",
@@ -152,10 +148,9 @@ if st.session_state.step == 1:
       expanded=False,
   ):
     st.write(
-        "Enter your registered **Email, Phone Number, or Customer ID** along"
-        " with your **Date of Birth** to verify your identity."
+        "Enter your registered **Email, Phone Number, or Customer ID** along with your **Date of Birth** to verify your identity."
     )
-    r_col1, r_col2, r_col3 = st.columns([2, 2, 1])
+    r_col1, r_col2, r_col3 = st.columns(3)
     with r_col1:
       lookup_input = st.text_input(
           "Email / Phone / Customer ID", placeholder="e.g., dhian@example.com"
@@ -172,8 +167,7 @@ if st.session_state.step == 1:
         if found:
           st.session_state.active_customer = found
           st.success(
-              f"Identity Verified! Welcome back, {found['full_name']}"
-              f" ({found['customer_id']})."
+              f"Identity Verified! Welcome back, {found['full_name']} ({found['customer_id']})."
           )
         else:
           st.error("No matching record found. Please check your details.")
@@ -215,23 +209,27 @@ if st.session_state.step == 1:
 
     # --- ADDITIONAL BANK DETAILS IN ANOTHER CLICK (EXPANDER) ---
     with st.expander(
-        "➕ Click to Add Additional Bank Verification & Profile Details"
-        " (Recommended for Higher Approval Limit)"
+        "➕ Click to Add Additional Bank Verification & Profile Details (Recommended for Higher Approval Limit)"
     ):
       ex1, ex2, ex3 = st.columns(3)
       with ex1:
         city = st.text_input(
             "Current City of Residence", value=cust.get("city", "Ahmedabad")
         )
+        employment_options = [
+            "Salaried",
+            "Self-Employed / Business",
+            "Professional",
+            "Student",
+        ]
+        saved_emp = cust.get("employment_type", "Salaried")
+        emp_idx = (
+            employment_options.index(saved_emp)
+            if saved_emp in employment_options
+            else 0
+        )
         employment_type = st.selectbox(
-            "Employment Category",
-            ["Salaried", "Self-Employed / Business", "Professional", "Student"],
-            index=[
-                "Salaried",
-                "Self-Employed / Business",
-                "Professional",
-                "Student",
-            ].index(cust.get("employment_type", "Salaried")),
+            "Employment Category", employment_options, index=emp_idx
         )
       with ex2:
         employer_name = st.text_input(
@@ -262,16 +260,16 @@ if st.session_state.step == 1:
   if submit_approval:
     if not full_name.strip() or not phone.strip() or not email.strip():
       st.error(
-          "Please fill in all mandatory fields marked with * (Name, Mobile,"
-          " Email)."
+          "Please fill in all mandatory fields marked with * (Name, Mobile, Email)."
       )
     else:
       # Bank Underwriting Rules
       max_eligible_emi = (monthly_income * 0.50) - existing_emi
-      # Estimate max loan at 10% for 60 months
       r_est = 0.10 / 12
       max_eligible_loan = (
-          max_eligible_emi * (((1 + r_est) ** 60) - 1) / (r_est * ((1 + r_est) ** 60))
+          max_eligible_emi
+          * (((1 + r_est) ** 60) - 1)
+          / (r_est * ((1 + r_est) ** 60))
           if max_eligible_emi > 0
           else 0
       )
@@ -321,8 +319,192 @@ if st.session_state.step == 1:
 
       if approved_limit > 0:
         st.success(
-            "Your profile is saved! Click the button below to proceed to the"
-            " EMI & Extra-Payment Calculator."
+            "Your profile is saved! Click the button below to proceed to the EMI & Extra-Payment Calculator."
         )
         if st.button("Proceed to Step 2: Loan Calculator ➡️", type="primary"):
           st.session_state.step = 2
+          st.rerun()
+      else:
+
+          st.warning(
+              "Based on current income/credit score, the loan cannot be approved. You can still test scenarios in Step 2."
+          )
+
+          == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+
+          PAGE
+          2: SMART
+          EMI
+          CALCULATOR & EXTRA
+          PAYMENT
+          SIMULATOR
+
+          == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+
+          elif st.session_state.step == 2:
+          cust = st.session_state.active_customer
+          if cust:
+              st.info(
+                  f"Active Applicant: {cust['full_name']} (ID: {cust['customer_id']}) | Approved Limit: ₹{cust['approved_limit']:,.2f}"
+              )
+          else:
+              st.warning(
+                  "No applicant loaded from Step 1. Using standard calculator mode."
+              )
+          st.subheader("Step 2: Loan EMI & Extra Monthly Payment Simulator")
+          default_loan = (
+              float(cust["approved_limit"])
+              if (cust and cust["approved_limit"] > 0)
+              else 500000.0
+          )
+          col_in1, col_in2 = st.columns(2)
+          with col_in1:
+              loan_amount = st.number_input(
+                  "Loan Principal Amount (₹)",
+                  min_value=1000.0,
+                  value=default_loan,
+                  step=10000.0,
+              )
+          annual_rate = st.number_input(
+              "Annual Interest Rate (%)",
+              min_value=0.1,
+              max_value=40.0,
+              value=9.5,
+              step=0.1,
+          )
+          with col_in2:
+              tenure_months = st.number_input(
+                  "Loan Tenure (Months)", min_value=1, max_value=360, value=60, step=1
+              )
+          extra_monthly = st.number_input(
+              "Extra Monthly Prepayment (₹) — Optional",
+              min_value=0.0,
+              value=0.0,
+              step=1000.0,
+              help="See how paying extra each month reduces your tenure and saves interest!",
+          )
+
+          --- ADDITIONAL
+          ONE - TIME
+          LUMP
+          SUM
+          PREPAYMENT
+          IN
+          ANOTHER
+          CLICK - --
+
+          with st.expander("💡 Advanced Bank Feature: One-Time Bonus / Lump-Sum Prepayment"):
+              lump_col1, lump_col2 = st.columns(2)
+          with lump_col1:
+              lump_sum_amount = st.number_input(
+                  "One-Time Lump Sum Payment (₹)", min_value=0.0, value=0.0, step=5000.0
+              )
+          with lump_col2:
+              lump_sum_month = st.number_input(
+                  "Which Month Will You Pay This Lump Sum?",
+                  min_value=1,
+                  max_value=int(tenure_months),
+                  value=min(12, int(tenure_months)),
+                  step=1,
+              )
+
+          --- AMORTIZATION
+          ENGINE(STANDARD
+          VS.EXTRA
+          PAYMENTS) ---
+
+          r = (annual_rate / 100) / 12
+          standard_emi = (
+                  loan_amount
+                  * r
+                  * ((1 + r) ** tenure_months)
+                  / (((1 + r) ** tenure_months) - 1)
+          )
+          standard_total_interest = (standard_emi * tenure_months) - loan_amount
+
+          Simulate
+          month - by - month
+          with extra payments
+
+          balance = loan_amount
+          schedule = []
+          total_interest_with_extra = 0.0
+          actual_months = 0
+          for m in range(1, int(tenure_months) + 1):
+              if balance <= 0:
+                  break
+          actual_months += 1
+          interest_for_month = balance * r
+          principal_for_month = standard_emi - interest_for_month
+          extra_this_month = extra_monthly + (
+              lump_sum_amount if m == lump_sum_month else 0.0
+          )
+          total_principal_paid = principal_for_month + extra_this_month
+          if total_principal_paid >= balance:
+              total_principal_paid = balance
+          total_payment_this_month = balance + interest_for_month
+          balance = 0.0
+          else:
+          total_payment_this_month = standard_emi + extra_this_month
+          balance -= total_principal_paid
+          total_interest_with_extra += interest_for_month
+          schedule.append({
+              "Month": m,
+              "Opening Balance (₹)": round(balance + total_principal_paid, 2),
+              "Interest Paid (₹)": round(interest_for_month, 2),
+              "Principal + Extra Paid (₹)": round(total_principal_paid, 2),
+              "Total Outflow (₹)": round(total_payment_this_month, 2),
+              "Closing Balance (₹)": round(balance, 2),
+          })
+          interest_saved = max(0.0, standard_total_interest - total_interest_with_extra)
+          months_saved = max(0, int(tenure_months) - actual_months)
+
+          --- DISPLAY
+          SUMMARY
+          METRICS - --
+
+          st.divider()
+          k1, k2, k3, k4 = st.columns(4)
+          k1.metric("Standard Monthly EMI", f"₹{standard_emi:,.2f}")
+          k2.metric(
+              "Total Interest Payable",
+              f"₹{total_interest_with_extra:,.2f}",
+              delta=f"-₹{interest_saved:,.2f} saved" if interest_saved > 0 else None,
+              delta_color="normal",
+          )
+          k3.metric(
+              "Effective Loan Tenure",
+              f"{actual_months} Months",
+              delta=f"-{months_saved} months early" if months_saved > 0 else None,
+          )
+          k4.metric(
+              "Total Amount Payable",
+              f"₹{(loan_amount + total_interest_with_extra):,.2f}",
+          )
+
+          --- EXPANDABLE
+          AMORTIZATION
+          SCHEDULE & DATABASE
+          EXPORT - --
+
+          with st.expander("📅 View Month-by-Month Bank Amortization Schedule"):
+              df_schedule = pd.DataFrame(schedule)
+          st.dataframe(df_schedule, use_container_width=True)
+          st.download_button(
+              "📥 Download Repayment Schedule (CSV)",
+              data=df_schedule.to_csv(index=False).encode("utf-8"),
+              file_name="amortization_schedule.csv",
+              mime="text/csv",
+          )
+          with st.expander("🗄️ Bank Officer Ledger: View All Stored Applicant Records"):
+              all_df = get_all_applicants()
+          if not all_df.empty:
+              st.dataframe(all_df, use_container_width=True)
+          st.download_button(
+              "📥 Export Full Customer Database (CSV)",
+              data=all_df.to_csv(index=False).encode("utf-8"),
+              file_name="apex_bank_customers.csv",
+              mime="text/csv",
+          )
+          else:
+          st.info("No applicant records stored yet.")
