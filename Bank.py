@@ -4,12 +4,10 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="SmartBanking",
+    page_title="Apex Bank | Smart Loan Portal",
     page_icon="🏦",
     layout="wide",
 )
-
-st.write="By DHIAN PATEL"
 
 DB_FILE = "bank_customers.db"
 
@@ -110,148 +108,143 @@ if "active_customer" not in st.session_state:
 
 st.title("🏦 Apex Bank — Digital Loan Origination & EMI Portal")
 st.caption(
-    "Automated Pre-Approval • Customer Identity Vault • Prepayment Savings Simulator"
+    "Automated Pre-Approval • Customer Identity Vault • Prepayment Savings"
+    " Simulator"
 )
 
 col_nav1, col_nav2 = st.columns(2)
-with col_nav1:
-  if st.button(
-      "1️⃣ Step 1: Verification & Approval",
-      use_container_width=True,
-      type="primary" if st.session_state.step == 1 else "secondary",
-  ):
-    st.session_state.step = 1
-    st.rerun()
-with col_nav2:
-  if st.button(
-      "2️⃣ Step 2: EMI & Prepayment Calculator",
-      use_container_width=True,
-      type="primary" if st.session_state.step == 2 else "secondary",
-  ):
-    st.session_state.step = 2
-    st.rerun()
+if col_nav1.button(
+    "1️⃣ Step 1: Verification & Approval",
+    use_container_width=True,
+    type="primary" if st.session_state.step == 1 else "secondary",
+):
+  st.session_state.step = 1
+  st.rerun()
+
+if col_nav2.button(
+    "2️⃣ Step 2: EMI & Prepayment Calculator",
+    use_container_width=True,
+    type="primary" if st.session_state.step == 2 else "secondary",
+):
+  st.session_state.step = 2
+  st.rerun()
 
 st.divider()
 
 if st.session_state.step == 1:
   st.subheader("Step 1: Applicant Verification & Pre-Approval Check")
 
-  with st.expander(
+  ret_exp = st.expander(
       "🔄 Returning Applicant? Click here to load your saved profile",
       expanded=False,
-  ):
-    st.write(
-        "Enter your registered **Email, Phone Number, or Customer ID** along with your **Date of Birth** to verify your identity."
-    )
-    r_col1, r_col2, r_col3 = st.columns(3)
-    with r_col1:
-      lookup_input = st.text_input(
-          "Email / Phone / Customer ID", placeholder="e.g., dhian@example.com"
+  )
+  ret_exp.write(
+      "Enter your registered **Email, Phone Number, or Customer ID** along"
+      " with your **Date of Birth** to verify your identity."
+  )
+  r_col1, r_col2, r_col3 = ret_exp.columns(3)
+  lookup_input = r_col1.text_input(
+      "Email / Phone / Customer ID", placeholder="e.g., dhian@example.com"
+  )
+  lookup_dob = r_col2.date_input(
+      "Date of Birth for Verification", value=datetime(1998, 1, 1)
+  )
+  r_col3.write("")
+  r_col3.write("")
+  if r_col3.button("Verify & Load", use_container_width=True):
+    found = find_applicant(lookup_input, str(lookup_dob))
+    if found:
+      st.session_state.active_customer = found
+      st.success(
+          f"Identity Verified! Welcome back, {found['full_name']}"
+          f" ({found['customer_id']})."
       )
-    with r_col2:
-      lookup_dob = st.date_input(
-          "Date of Birth for Verification", value=datetime(1998, 1, 1)
-      )
-    with r_col3:
-      st.write("")
-      st.write("")
-      if st.button("Verify & Load", use_container_width=True):
-        found = find_applicant(lookup_input, str(lookup_dob))
-        if found:
-          st.session_state.active_customer = found
-          st.success(
-              f"Identity Verified! Welcome back, {found['full_name']} ({found['customer_id']})."
-          )
-        else:
-          st.error("No matching record found. Please check your details.")
+    else:
+      st.error("No matching record found. Please check your details.")
 
   cust = st.session_state.active_customer or {}
 
-  with st.form("approval_form"):
-    st.markdown("#### Primary KYC & Financial Details")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-      full_name = st.text_input(
-          "Full Legal Name *", value=cust.get("full_name", "")
-      )
-      dob = st.date_input(
-          "Date of Birth *",
-          value=datetime.strptime(cust["dob"], "%Y-%m-%d")
-          if "dob" in cust
-          else datetime(1998, 1, 1),
-      )
-    with c2:
-      phone = st.text_input(
-          "Registered Mobile Number *", value=cust.get("phone", "")
-      )
-      email = st.text_input("Email Address *", value=cust.get("email", ""))
-    with c3:
-      monthly_income = st.number_input(
-          "Net Monthly Income (₹) *",
-          min_value=0.0,
-          value=float(cust.get("monthly_income", 60000.0)),
-          step=2000.0,
-      )
-      requested_loan = st.number_input(
-          "Requested Loan Amount (₹) *",
-          min_value=5000.0,
-          value=float(cust.get("requested_loan", 500000.0)),
-          step=10000.0,
-      )
+  form = st.form("approval_form")
+  form.markdown("#### Primary KYC & Financial Details")
+  c1, c2, c3 = form.columns(3)
+  full_name = c1.text_input(
+      "Full Legal Name *", value=cust.get("full_name", "")
+  )
+  dob = c1.date_input(
+      "Date of Birth *",
+      value=datetime.strptime(cust["dob"], "%Y-%m-%d")
+      if "dob" in cust
+      else datetime(1998, 1, 1),
+  )
+  phone = c2.text_input(
+      "Registered Mobile Number *", value=cust.get("phone", "")
+  )
+  email = c2.text_input("Email Address *", value=cust.get("email", ""))
+  monthly_income = c3.number_input(
+      "Net Monthly Income (₹) *",
+      min_value=0.0,
+      value=float(cust.get("monthly_income", 60000.0)),
+      step=2000.0,
+  )
+  requested_loan = c3.number_input(
+      "Requested Loan Amount (₹) *",
+      min_value=5000.0,
+      value=float(cust.get("requested_loan", 500000.0)),
+      step=10000.0,
+  )
 
-    with st.expander(
-        "➕ Click to Add Additional Bank Verification & Profile Details (Recommended for Higher Approval Limit)"
-    ):
-      ex1, ex2, ex3 = st.columns(3)
-      with ex1:
-        city = st.text_input(
-            "Current City of Residence", value=cust.get("city", "Ahmedabad")
-        )
-        employment_options = [
-            "Salaried",
-            "Self-Employed / Business",
-            "Professional",
-            "Student",
-        ]
-        saved_emp = cust.get("employment_type", "Salaried")
-        emp_idx = (
-            employment_options.index(saved_emp)
-            if saved_emp in employment_options
-            else 0
-        )
-        employment_type = st.selectbox(
-            "Employment Category", employment_options, index=emp_idx
-        )
-      with ex2:
-        employer_name = st.text_input(
-            "Company / Business Name", value=cust.get("employer_name", "")
-        )
-        existing_emi = st.number_input(
-            "Existing Monthly Loan EMIs (₹)",
-            min_value=0.0,
-            value=float(cust.get("existing_emi", 0.0)),
-            step=1000.0,
-        )
-      with ex3:
-        credit_score = st.slider(
-            "Estimated Credit / CIBIL Score",
-            min_value=300,
-            max_value=900,
-            value=int(cust.get("credit_score", 750)),
-        )
-        bank_relation = st.selectbox(
-            "Existing Account with Apex Bank?",
-            ["Yes - Savings/Salary Account", "No - New Customer"],
-        )
+  kyc_exp = form.expander(
+      "➕ Click to Add Additional Bank Verification & Profile Details"
+      " (Recommended for Higher Approval Limit)"
+  )
+  ex1, ex2, ex3 = kyc_exp.columns(3)
+  city = ex1.text_input(
+      "Current City of Residence", value=cust.get("city", "Ahmedabad")
+  )
+  employment_options = [
+      "Salaried",
+      "Self-Employed / Business",
+      "Professional",
+      "Student",
+  ]
+  saved_emp = cust.get("employment_type", "Salaried")
+  emp_idx = (
+      employment_options.index(saved_emp)
+      if saved_emp in employment_options
+      else 0
+  )
+  employment_type = ex1.selectbox(
+      "Employment Category", employment_options, index=emp_idx
+  )
+  employer_name = ex2.text_input(
+      "Company / Business Name", value=cust.get("employer_name", "")
+  )
+  existing_emi = ex2.number_input(
+      "Existing Monthly Loan EMIs (₹)",
+      min_value=0.0,
+      value=float(cust.get("existing_emi", 0.0)),
+      step=1000.0,
+  )
+  credit_score = ex3.slider(
+      "Estimated Credit / CIBIL Score",
+      min_value=300,
+      max_value=900,
+      value=int(cust.get("credit_score", 750)),
+  )
+  bank_relation = ex3.selectbox(
+      "Existing Account with Apex Bank?",
+      ["Yes - Savings/Salary Account", "No - New Customer"],
+  )
 
-    submit_approval = st.form_submit_button(
-        "Check Loan Eligibility & Save Profile", type="primary"
-    )
+  submit_approval = form.form_submit_button(
+      "Check Loan Eligibility & Save Profile", type="primary"
+  )
 
   if submit_approval:
     if not full_name.strip() or not phone.strip() or not email.strip():
       st.error(
-          "Please fill in all mandatory fields marked with * (Name, Mobile, Email)."
+          "Please fill in all mandatory fields marked with * (Name, Mobile,"
+          " Email)."
       )
     else:
       max_eligible_emi = (monthly_income * 0.50) - existing_emi
@@ -309,21 +302,25 @@ if st.session_state.step == 1:
 
       if approved_limit > 0:
         st.success(
-            "Your profile is saved! Click the button below to proceed to the EMI & Extra-Payment Calculator."
+            "Your profile is saved! Click the button below to proceed to the"
+            " EMI & Extra-Payment Calculator."
         )
         if st.button("Proceed to Step 2: Loan Calculator ➡️", type="primary"):
           st.session_state.step = 2
           st.rerun()
       else:
         st.warning(
-            "Based on current income/credit score, the loan cannot be approved. You can still test scenarios in Step 2."
+            "Based on current income/credit score, the loan cannot be approved."
+            " You can still test scenarios in Step 2."
         )
 
 elif st.session_state.step == 2:
   cust = st.session_state.active_customer
   if cust:
     st.info(
-        f"Active Applicant: **{cust['full_name']}** (ID: `{cust['customer_id']}`) | Approved Limit: **₹{cust['approved_limit']:,.2f}**"
+        f"Active Applicant: **{cust['full_name']}** (ID:"
+        f" `{cust['customer_id']}`) | Approved Limit:"
+        f" **₹{cust['approved_limit']:,.2f}**"
     )
   else:
     st.warning(
@@ -333,45 +330,46 @@ elif st.session_state.step == 2:
   st.subheader("Step 2: Loan EMI & Extra Monthly Payment Simulator")
 
   default_loan = (
+      float(cust["approved_limit"])
+      if (cust and cust["approved_limit"] > 0)
+      else 500000.0
+  )
 
-float(cust["approved_limit"])
-if (cust and cust["approved_limit"] > 0)
-else 500000.0
-)
-col_in1, col_in2 = st.columns(2)
-with col_in1:
-loan_amount = st.number_input(
-"Loan Principal Amount (₹)",
-min_value=1000.0,
-value=default_loan,
-step=10000.0,
-)
-annual_rate = st.number_input(
-"Annual Interest Rate (%)",
-min_value=0.1,
-max_value=40.0,
-value=9.5,
-step=0.1,
-)
-with col_in2:
-tenure_months = st.number_input(
+  col_in1, col_in2 = st.columns(2)
+  loan_amount = col_in1.number_input(
+      "Loan Principal Amount (₹)",
+      min_value=1000.0,
+      value=default_loan,
+      step=10000.0,
+  )
+  annual_rate = col_in1.number_input(
+      "Annual Interest Rate (%)",
+      min_value=0.1,
+      max_value=40.0,
+      value=9.5,
+      step=0.1,
+  )
+
+
+
+tenure_months = col_in2.number_input(
 "Loan Tenure (Months)", min_value=1, max_value=360, value=60, step=1
 )
-extra_monthly = st.number_input(
+extra_monthly = col_in2.number_input(
 "Extra Monthly Prepayment (₹) — Optional",
 min_value=0.0,
 value=0.0,
 step=1000.0,
 help="See how paying extra each month reduces your tenure and saves interest!",
 )
-with st.expander("💡 Advanced Bank Feature: One-Time Bonus / Lump-Sum Prepayment"):
-lump_col1, lump_col2 = st.columns(2)
-with lump_col1:
-lump_sum_amount = st.number_input(
+lump_exp = st.expander(
+"💡 Advanced Bank Feature: One-Time Bonus / Lump-Sum Prepayment"
+)
+lump_col1, lump_col2 = lump_exp.columns(2)
+lump_sum_amount = lump_col1.number_input(
 "One-Time Lump Sum Payment (₹)", min_value=0.0, value=0.0, step=5000.0
 )
-with lump_col2:
-lump_sum_month = st.number_input(
+lump_sum_month = lump_col2.number_input(
 "Which Month Will You Pay This Lump Sum?",
 min_value=1,
 max_value=int(tenure_months),
@@ -436,24 +434,26 @@ k4.metric(
 "Total Amount Payable",
 f"₹{(loan_amount + total_interest_with_extra):,.2f}",
 )
-with st.expander("📅 View Month-by-Month Bank Amortization Schedule"):
+sched_exp = st.expander("📅 View Month-by-Month Bank Amortization Schedule")
 df_schedule = pd.DataFrame(schedule)
-st.dataframe(df_schedule, use_container_width=True)
-st.download_button(
+sched_exp.dataframe(df_schedule, use_container_width=True)
+sched_exp.download_button(
 "📥 Download Repayment Schedule (CSV)",
 data=df_schedule.to_csv(index=False).encode("utf-8"),
 file_name="amortization_schedule.csv",
 mime="text/csv",
 )
-with st.expander("🗄️ Bank Officer Ledger: View All Stored Applicant Records"):
+ledger_exp = st.expander(
+"🗄️ Bank Officer Ledger: View All Stored Applicant Records"
+)
 all_df = get_all_applicants()
 if not all_df.empty:
-st.dataframe(all_df, use_container_width=True)
-st.download_button(
+ledger_exp.dataframe(all_df, use_container_width=True)
+ledger_exp.download_button(
 "📥 Export Full Customer Database (CSV)",
 data=all_df.to_csv(index=False).encode("utf-8"),
 file_name="apex_bank_customers.csv",
 mime="text/csv",
 )
 else:
-st.info("No applicant records stored yet.")
+ledger_exp.info("No applicant records stored yet.")
