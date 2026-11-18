@@ -15,25 +15,14 @@ DB_FILE = "bank_customers.db"
 def init_db():
   conn = sqlite3.connect(DB_FILE)
   c = conn.cursor()
-  c.execute("""
-        CREATE TABLE IF NOT EXISTS applicants (
-            customer_id TEXT PRIMARY KEY,
-            full_name TEXT,
-            dob TEXT,
-            phone TEXT,
-            email TEXT,
-            city TEXT,
-            employment_type TEXT,
-            employer_name TEXT,
-            monthly_income REAL,
-            existing_emi REAL,
-            credit_score INTEGER,
-            requested_loan REAL,
-            approval_status TEXT,
-            approved_limit REAL,
-            created_at TEXT
-        )
-    """)
+  c.execute(
+      "CREATE TABLE IF NOT EXISTS applicants ("
+      "customer_id TEXT PRIMARY KEY, full_name TEXT, dob TEXT, "
+      "phone TEXT, email TEXT, city TEXT, employment_type TEXT, "
+      "employer_name TEXT, monthly_income REAL, existing_emi REAL, "
+      "credit_score INTEGER, requested_loan REAL, approval_status TEXT, "
+      "approved_limit REAL, created_at TEXT)"
+  )
   conn.commit()
   conn.close()
 
@@ -42,13 +31,11 @@ def save_applicant(data):
   conn = sqlite3.connect(DB_FILE)
   c = conn.cursor()
   c.execute(
-      """
-        INSERT OR REPLACE INTO applicants VALUES (
-            :customer_id, :full_name, :dob, :phone, :email, :city,
-            :employment_type, :employer_name, :monthly_income, :existing_emi,
-            :credit_score, :requested_loan, :approval_status, :approved_limit, :created_at
-        )
-    """,
+      "INSERT OR REPLACE INTO applicants VALUES ("
+      ":customer_id, :full_name, :dob, :phone, :email, :city, "
+      ":employment_type, :employer_name, :monthly_income, :existing_emi, "
+      ":credit_score, :requested_loan, :approval_status, :approved_limit,"
+      " :created_at)",
       data,
   )
   conn.commit()
@@ -59,35 +46,32 @@ def find_applicant(lookup_key, dob_str):
   conn = sqlite3.connect(DB_FILE)
   c = conn.cursor()
   c.execute(
-      """
-        SELECT * FROM applicants
-        WHERE (LOWER(email) = LOWER(?) OR phone = ? OR UPPER(customer_id) = UPPER(?))
-        AND dob = ?
-    """,
+      "SELECT * FROM applicants WHERE (LOWER(email) = LOWER(?) OR phone = ? OR"
+      " UPPER(customer_id) = UPPER(?)) AND dob = ?",
       (lookup_key.strip(), lookup_key.strip(), lookup_key.strip(), dob_str),
   )
   row = c.fetchone()
   conn.close()
-  if row:
-    columns = [
-        "customer_id",
-        "full_name",
-        "dob",
-        "phone",
-        "email",
-        "city",
-        "employment_type",
-        "employer_name",
-        "monthly_income",
-        "existing_emi",
-        "credit_score",
-        "requested_loan",
-        "approval_status",
-        "approved_limit",
-        "created_at",
-    ]
-    return dict(zip(columns, row))
-  return None
+  if not row:
+    return None
+  columns = [
+      "customer_id",
+      "full_name",
+      "dob",
+      "phone",
+      "email",
+      "city",
+      "employment_type",
+      "employer_name",
+      "monthly_income",
+      "existing_emi",
+      "credit_score",
+      "requested_loan",
+      "approval_status",
+      "approved_limit",
+      "created_at",
+  ]
+  return dict(zip(columns, row))
 
 
 def get_all_applicants():
@@ -99,39 +83,68 @@ def get_all_applicants():
   return df
 
 
-init_db()
-
-if "step" not in st.session_state:
-  st.session_state.step = 1
-if "active_customer" not in st.session_state:
-  st.session_state.active_customer = None
-
-st.title("🏦 Apex Bank — Digital Loan Origination & EMI Portal")
-st.caption(
-    "Automated Pre-Approval • Customer Identity Vault • Prepayment Savings"
-    " Simulator"
-)
-
-col_nav1, col_nav2 = st.columns(2)
-if col_nav1.button(
-    "1️⃣ Step 1: Verification & Approval",
-    use_container_width=True,
-    type="primary" if st.session_state.step == 1 else "secondary",
+def build_amortization(
+    loan_amount,
+    annual_rate,
+    tenure_months,
+    extra_monthly,
+    lump_sum_amount,
+    lump_sum_month,
 ):
-  st.session_state.step = 1
-  st.rerun()
+  r = (annual_rate / 100) / 12
+  standard_emi = (
+      loan_amount
+      * r
+      * ((1 + r) ** tenure_months)
+      / (((1 + r) ** tenure_months) - 1)
+  )
+  standard_total_interest = (standard_emi * tenure_months) - loan_amount
 
-if col_nav2.button(
-    "2️⃣ Step 2: EMI & Prepayment Calculator",
-    use_container_width=True,
-    type="primary" if st.session_state.step == 2 else "secondary",
-):
-  st.session_state.step = 2
-  st.rerun()
+  balance = loan_amount
+  schedule = []
+  total_interest = 0.0
+  actual_months = 0
 
-st.divider()
+  for m in range(1, int(tenure_months) + 1):
+    if balance <= 0:
+      break
+    actual_months += 1
+    interest_m = balance * r
+    principal_m = standard_emi - interest_m
+    extra_m = extra_monthly + (lump_sum_amount if m == lump_sum_month else 0.0)
+    total_principal = principal_m + extra_m
 
-if st.session_state.step == 1:
+    if total_principal >= balance:
+      total_principal = balance
+      outflow = balance + interest_m
+      balance = 0.0
+    else:
+      outflow = standard_emi + extra_m
+      balance -= total_principal
+
+    total_interest += interest_m
+    schedule.append({
+        "Month": m,
+        "Opening Balance (₹)": round(balance + total_principal, 2),
+        "Interest Paid (₹)": round(interest_m, 2),
+        "Principal + Extra Paid (₹)": round(total_principal, 2),
+        "Total Outflow (₹)": round(outflow, 2),
+        "Closing Balance (₹)": round(balance, 2),
+    })
+
+  interest_saved = max(0.0, standard_total_interest - total_interest)
+  months_saved = max(0, int(tenure_months) - actual_months)
+  return (
+      standard_emi,
+      total_interest,
+      actual_months,
+      interest_saved,
+      months_saved,
+      schedule,
+  )
+
+
+def render_step_1():
   st.subheader("Step 1: Applicant Verification & Pre-Approval Check")
 
   ret_exp = st.expander(
@@ -170,12 +183,12 @@ if st.session_state.step == 1:
   full_name = c1.text_input(
       "Full Legal Name *", value=cust.get("full_name", "")
   )
-  dob = c1.date_input(
-      "Date of Birth *",
-      value=datetime.strptime(cust["dob"], "%Y-%m-%d")
+  default_dob = (
+      datetime.strptime(cust["dob"], "%Y-%m-%d")
       if "dob" in cust
-      else datetime(1998, 1, 1),
+      else datetime(1998, 1, 1)
   )
+  dob = c1.date_input("Date of Birth *", value=default_dob)
   phone = c2.text_input(
       "Registered Mobile Number *", value=cust.get("phone", "")
   )
@@ -231,7 +244,7 @@ if st.session_state.step == 1:
       max_value=900,
       value=int(cust.get("credit_score", 750)),
   )
-  bank_relation = ex3.selectbox(
+  ex3.selectbox(
       "Existing Account with Apex Bank?",
       ["Yes - Savings/Salary Account", "No - New Customer"],
   )
@@ -240,81 +253,84 @@ if st.session_state.step == 1:
       "Check Loan Eligibility & Save Profile", type="primary"
   )
 
-  if submit_approval:
-    if not full_name.strip() or not phone.strip() or not email.strip():
-      st.error(
-          "Please fill in all mandatory fields marked with * (Name, Mobile,"
-          " Email)."
-      )
-    else:
-      max_eligible_emi = (monthly_income * 0.50) - existing_emi
-      r_est = 0.10 / 12
-      max_eligible_loan = (
-          max_eligible_emi
-          * (((1 + r_est) ** 60) - 1)
-          / (r_est * ((1 + r_est) ** 60))
-          if max_eligible_emi > 0
-          else 0
-      )
+  if not submit_approval:
+    return
 
-      if credit_score < 650 or max_eligible_emi <= 0:
-        status = "Declined (Low Credit Score or High Existing Debt)"
-        approved_limit = 0.0
-      elif requested_loan <= max_eligible_loan:
-        status = "Approved"
-        approved_limit = requested_loan
-      else:
-        status = "Partially Approved (Eligible for Lower Limit)"
-        approved_limit = round(max_eligible_loan, -3)
+  if not full_name.strip() or not phone.strip() or not email.strip():
+    st.error(
+        "Please fill in all mandatory fields marked with * (Name, Mobile,"
+        " Email)."
+    )
+    return
 
-      cust_id = cust.get(
-          "customer_id",
-          f"APX-{abs(hash(email + str(dob))) % 100000:05d}",
-      )
+  max_eligible_emi = (monthly_income * 0.50) - existing_emi
+  r_est = 0.10 / 12
+  max_eligible_loan = (
+      max_eligible_emi
+      * (((1 + r_est) ** 60) - 1)
+      / (r_est * ((1 + r_est) ** 60))
+      if max_eligible_emi > 0
+      else 0
+  )
 
-      record = {
-          "customer_id": cust_id,
-          "full_name": full_name.strip(),
-          "dob": str(dob),
-          "phone": phone.strip(),
-          "email": email.strip(),
-          "city": city.strip(),
-          "employment_type": employment_type,
-          "employer_name": employer_name.strip(),
-          "monthly_income": monthly_income,
-          "existing_emi": existing_emi,
-          "credit_score": credit_score,
-          "requested_loan": requested_loan,
-          "approval_status": status,
-          "approved_limit": approved_limit,
-          "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-      }
+  if credit_score < 650 or max_eligible_emi <= 0:
+    status = "Declined (Low Credit Score or High Existing Debt)"
+    approved_limit = 0.0
+  elif requested_loan <= max_eligible_loan:
+    status = "Approved"
+    approved_limit = requested_loan
+  else:
+    status = "Partially Approved (Eligible for Lower Limit)"
+    approved_limit = round(max_eligible_loan, -3)
 
-      save_applicant(record)
-      st.session_state.active_customer = record
+  cust_id = cust.get(
+      "customer_id", f"APX-{abs(hash(email + str(dob))) % 100000:05d}"
+  )
 
-      st.divider()
-      st.markdown(f"### Underwriting Decision for **{full_name}** (`{cust_id}`)")
-      m1, m2, m3 = st.columns(3)
-      m1.metric("Application Status", status)
-      m2.metric("Approved Loan Limit", f"₹{approved_limit:,.2f}")
-      m3.metric("Max Safe Monthly EMI", f"₹{max(0.0, max_eligible_emi):,.2f}")
+  record = {
+      "customer_id": cust_id,
+      "full_name": full_name.strip(),
+      "dob": str(dob),
+      "phone": phone.strip(),
+      "email": email.strip(),
+      "city": city.strip(),
+      "employment_type": employment_type,
+      "employer_name": employer_name.strip(),
+      "monthly_income": monthly_income,
+      "existing_emi": existing_emi,
+      "credit_score": credit_score,
+      "requested_loan": requested_loan,
+      "approval_status": status,
+      "approved_limit": approved_limit,
+      "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+  }
 
-      if approved_limit > 0:
-        st.success(
-            "Your profile is saved! Click the button below to proceed to the"
-            " EMI & Extra-Payment Calculator."
-        )
-        if st.button("Proceed to Step 2: Loan Calculator ➡️", type="primary"):
-          st.session_state.step = 2
-          st.rerun()
-      else:
-        st.warning(
-            "Based on current income/credit score, the loan cannot be approved."
-            " You can still test scenarios in Step 2."
-        )
+  save_applicant(record)
+  st.session_state.active_customer = record
 
-elif st.session_state.step == 2:
+  st.divider()
+  st.markdown(f"### Underwriting Decision for **{full_name}** (`{cust_id}`)")
+  m1, m2, m3 = st.columns(3)
+  m1.metric("Application Status", status)
+  m2.metric("Approved Loan Limit", f"₹{approved_limit:,.2f}")
+  m3.metric("Max Safe Monthly EMI", f"₹{max(0.0, max_eligible_emi):,.2f}")
+
+  if approved_limit > 0:
+    st.success(
+        "Your profile is saved! Click the button below to proceed to the EMI &"
+        " Extra-Payment Calculator."
+    )
+    if st.button("Proceed to Step 2: Loan Calculator ➡️", type="primary"):
+      st.session_state.step = 2
+      st.rerun()
+  else:
+    st.warning(
+        "Based on current income/credit score, the loan cannot be approved. You"
+        " can still test scenarios in Step 2."
+    )
+
+
+def render_step_2():
   cust = st.session_state.active_customer
   if cust:
     st.info(
@@ -336,22 +352,24 @@ elif st.session_state.step == 2:
   )
 
   col_in1, col_in2 = st.columns(2)
-  loan_amount = col_in1.number_input(
-      "Loan Principal Amount (₹)",
-      min_value=1000.0,
-      value=default_loan,
-      step=10000.0,
-  )
-  annual_rate = col_in1.number_input(
-      "Annual Interest Rate (%)",
-      min_value=0.1,
-      max_value=40.0,
-      value=9.5,
-      step=0.1,
-  )
 
 
 
+
+
+loan_amount = col_in1.number_input(
+"Loan Principal Amount (₹)",
+min_value=1000.0,
+value=default_loan,
+step=10000.0,
+)
+annual_rate = col_in1.number_input(
+"Annual Interest Rate (%)",
+min_value=0.1,
+max_value=40.0,
+value=9.5,
+step=0.1,
+)
 tenure_months = col_in2.number_input(
 "Loan Tenure (Months)", min_value=1, max_value=360, value=60, step=1
 )
@@ -360,7 +378,6 @@ extra_monthly = col_in2.number_input(
 min_value=0.0,
 value=0.0,
 step=1000.0,
-help="See how paying extra each month reduces your tenure and saves interest!",
 )
 lump_exp = st.expander(
 "💡 Advanced Bank Feature: One-Time Bonus / Lump-Sum Prepayment"
@@ -376,54 +393,28 @@ max_value=int(tenure_months),
 value=min(12, int(tenure_months)),
 step=1,
 )
-r = (annual_rate / 100) / 12
-standard_emi = (
-loan_amount
-* r
-* ((1 + r) ** tenure_months)
-/ (((1 + r) ** tenure_months) - 1)
+(
+standard_emi,
+total_interest,
+actual_months,
+interest_saved,
+months_saved,
+schedule,
+) = build_amortization(
+loan_amount,
+annual_rate,
+tenure_months,
+extra_monthly,
+lump_sum_amount,
+lump_sum_month,
 )
-standard_total_interest = (standard_emi * tenure_months) - loan_amount
-balance = loan_amount
-schedule = []
-total_interest_with_extra = 0.0
-actual_months = 0
-for m in range(1, int(tenure_months) + 1):
-if balance <= 0:
-break
-actual_months += 1
-interest_for_month = balance * r
-principal_for_month = standard_emi - interest_for_month
-extra_this_month = extra_monthly + (
-lump_sum_amount if m == lump_sum_month else 0.0
-)
-total_principal_paid = principal_for_month + extra_this_month
-if total_principal_paid >= balance:
-total_principal_paid = balance
-total_payment_this_month = balance + interest_for_month
-balance = 0.0
-else:
-total_payment_this_month = standard_emi + extra_this_month
-balance -= total_principal_paid
-total_interest_with_extra += interest_for_month
-schedule.append({
-"Month": m,
-"Opening Balance (₹)": round(balance + total_principal_paid, 2),
-"Interest Paid (₹)": round(interest_for_month, 2),
-"Principal + Extra Paid (₹)": round(total_principal_paid, 2),
-"Total Outflow (₹)": round(total_payment_this_month, 2),
-"Closing Balance (₹)": round(balance, 2),
-})
-interest_saved = max(0.0, standard_total_interest - total_interest_with_extra)
-months_saved = max(0, int(tenure_months) - actual_months)
 st.divider()
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Standard Monthly EMI", f"₹{standard_emi:,.2f}")
 k2.metric(
 "Total Interest Payable",
-f"₹{total_interest_with_extra:,.2f}",
+f"₹{total_interest:,.2f}",
 delta=f"-₹{interest_saved:,.2f} saved" if interest_saved > 0 else None,
-delta_color="normal",
 )
 k3.metric(
 "Effective Loan Tenure",
@@ -431,8 +422,7 @@ f"{actual_months} Months",
 delta=f"-{months_saved} months early" if months_saved > 0 else None,
 )
 k4.metric(
-"Total Amount Payable",
-f"₹{(loan_amount + total_interest_with_extra):,.2f}",
+"Total Amount Payable", f"₹{(loan_amount + total_interest):,.2f}"
 )
 sched_exp = st.expander("📅 View Month-by-Month Bank Amortization Schedule")
 df_schedule = pd.DataFrame(schedule)
@@ -457,3 +447,33 @@ mime="text/csv",
 )
 else:
 ledger_exp.info("No applicant records stored yet.")
+init_db()
+if "step" not in st.session_state:
+st.session_state.step = 1
+if "active_customer" not in st.session_state:
+st.session_state.active_customer = None
+st.title("🏦 Apex Bank — Digital Loan Origination & EMI Portal")
+st.caption(
+"Automated Pre-Approval • Customer Identity Vault • Prepayment Savings"
+" Simulator"
+)
+col_nav1, col_nav2 = st.columns(2)
+if col_nav1.button(
+"1️⃣ Step 1: Verification & Approval",
+use_container_width=True,
+type="primary" if st.session_state.step == 1 else "secondary",
+):
+st.session_state.step = 1
+st.rerun()
+if col_nav2.button(
+"2️⃣ Step 2: EMI & Prepayment Calculator",
+use_container_width=True,
+type="primary" if st.session_state.step == 2 else "secondary",
+):
+st.session_state.step = 2
+st.rerun()
+st.divider()
+if st.session_state.step == 1:
+render_step_1()
+else:
+render_step_2()
