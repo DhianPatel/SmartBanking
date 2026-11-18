@@ -437,6 +437,10 @@ ledger_exp = st.expander(
 "🗄️ Bank Officer Ledger: View All Stored Applicant Records"
 )
 all_df = get_all_applicants()
+
+
+
+
 if not all_df.empty:
 ledger_exp.dataframe(all_df, use_container_width=True)
 ledger_exp.download_button(
@@ -445,6 +449,8 @@ data=all_df.to_csv(index=False).encode("utf-8"),
 file_name="apex_bank_customers.csv",
 mime="text/csv",
 )
+
+
 else:
 ledger_exp.info("No applicant records stored yet.")
 init_db()
